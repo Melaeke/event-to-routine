@@ -1,56 +1,106 @@
 package com.hispet;
+
+import java.awt.List;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.Iterator;
+import java.util.Scanner;
 
 import org.json.*;
 
+/**
+ * 
+ * @author melaeke
+ *
+ */
 public class Main {
 
 	public static void main(String[] args) {
-		JSONObject tomJsonObj = new JSONObject();
-
-		tomJsonObj.put("name", "Tom");
-		tomJsonObj.put("birthDay", "1940-02-10");
-
-		tomJsonObj.put("fav_food", new String[] { "cookie", "fish" });
-
-		System.out.println(tomJsonObj.toString(1));
 		
+	}
+	
+	public static void startProcessing() {
 		try {
-			readJSON("/home/melaeke/dhis/development/Afar.json");
+			JSONArray events = readJSON("/home/melaeke/dhis/development/Afar.json", false).getJSONArray("events");
+
+			// first create a loop to iterate on every event.
+
+			// for every event, create an Event object to save the data.
+
+			// inside the event object make sure that the id doesn't exist,
+			// if the ID exists add the values and then just move
+			// if the id doesn't exist create a new object and return that object to the new
+			// one.
+
+			for(Object obj: events) {
+				Event.addEvent((JSONObject)obj);
+			}
+			
+			JSONArray finalEventsArray=new JSONArray();
+			//Now I have all the Events changed I need it to change it to a JSON array and export it.
+			Iterator<String>keys=Event.allEvents.keys();
+			while(keys.hasNext()) {
+				String key = keys.next();
+				Event e = (Event) Event.allEvents.get(key);
+				JSONObject temp = new JSONObject(e);
+				finalEventsArray.put(temp);
+			}
+			
+			display("all DataValues:"+Event.allDataValuesSize);
+			Event.allEvents.length();
+			display("All Event dataValuesFinal:"+Event.allEventsSize);
+			display("All Events oridginally : "+events.length());
+			display("Events which aren't imported because of DISease code : "+Event.eventsWithNoDiseaseCode);
+			
+			display(finalEventsArray.toString(4));
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
+			displayErrorMessage("error" + e.getMessage());
 			e.printStackTrace();
 		}
 	}
-	
-	public static void readJSON(String fileName) throws IOException {
-		File file=new File(fileName);
-		
-		//String content = FileUtils.readFileToString(file,"utf-8");
-		
-		InputStream is = new FileInputStream(file);
-		
-		BufferedReader buff= new BufferedReader(new InputStreamReader(is));
-		
-		String line = buff.readLine();
+
+	public static JSONObject readJSON(String fileName, boolean fromSamePackage) throws IOException {
+
 		StringBuilder sb = new StringBuilder();
-		
-		while (line!=null) {
-			sb.append(line).append("\n");
-			line=buff.readLine();
+		System.out.println("Started reading File " + fileName + " !!!");
+		if (!fromSamePackage) {
+			File file = new File(fileName);
+
+			InputStream is = new FileInputStream(file);
+			BufferedReader buff = new BufferedReader(new InputStreamReader(is));
+			String line = buff.readLine();
+			while (line != null) {
+				sb.append(line).append("\n");
+				line = buff.readLine();
+			}
+
+			buff.close();
+
+		} else {
+			Scanner scanner = new Scanner(Event.class.getResourceAsStream(fileName));
+			while (scanner.hasNextLine()) {
+				sb.append(scanner.nextLine() + "\n");
+			}
+			scanner.close();
+
 		}
-		
-		String stringFile= sb.toString();
-		
+		display("Finished reading file. Converting to JSON...");
+		String stringFile = sb.toString();
+
 		JSONObject obj = new JSONObject(stringFile);
-		System.out.println("finished reading file");
-		
-		
+		display("Finished converting to JSON. Starting processing...");
+		return obj;
+	}
+
+	public static void display(String message) {
+		System.out.println(message);
+	}
+
+	public static void displayErrorMessage(String message) {
+		System.out.println("ERROR: " + message);
 	}
 }
