@@ -3,20 +3,27 @@ package com.hispet;
 import java.awt.EventQueue;
 import java.awt.Rectangle;
 import java.awt.Toolkit;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
 
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JSeparator;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
-import javax.swing.SwingConstants;
+import javax.swing.filechooser.FileNameExtensionFilter;
 
-import java.awt.BorderLayout;
+import java.awt.Component;
 import java.awt.Dimension;
 
 import javax.swing.JButton;
+import javax.swing.JFileChooser;
 
 public class gui {
 
@@ -30,8 +37,13 @@ public class gui {
 	JButton browseOutputFileButton = new JButton("Browse");
 	JSeparator separator2 = new JSeparator();
 	JLabel statusFileLabel = new JLabel("Status");
-	JTextArea textArea = new JTextArea("Browse the file you want to convert And press start");
+	JTextArea statusTextArea = new JTextArea("Browse the file you want to convert And press start");
 	JButton startButton = new JButton("Start");
+	JFileChooser inputFileChooser = new JFileChooser();
+	JFileChooser outputFileChooser = new JFileChooser();
+
+	String inputFileName = "";
+	String outputFileName = "";
 
 	private static Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
 
@@ -92,6 +104,7 @@ public class gui {
 	 * Launch the application.
 	 */
 	public static void main(String[] args) {
+
 		initializeSizes(screenSize.getWidth(), screenSize.getHeight(), false);
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
@@ -121,6 +134,80 @@ public class gui {
 	public gui() {
 		frame = new JFrame();
 		initialize();
+		addActionListeners();
+	}
+
+	private void addActionListeners() {
+		/**
+		 * Add action Listener for browse input file button.
+		 */
+		browseInputFileButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent event) {
+				int returnVal = inputFileChooser.showOpenDialog((Component) event.getSource());
+				if (returnVal == JFileChooser.APPROVE_OPTION) {
+					File file = inputFileChooser.getSelectedFile();
+					inputFileName = inputFileChooser.getSelectedFile().toString();
+					inputFileNameTextField.setText(inputFileName);
+					try {
+						// check if the application can open the file. If it can't show status message
+						BufferedReader reader = new BufferedReader(new FileReader(inputFileName));
+						reader.close();
+					} catch (Exception ex) {
+						statusTextArea.setText("Problem Accessing file \n" + file.toString() + " : " + ex);
+					}
+				} else {
+					statusTextArea.setText("File access cancelled by User");
+				}
+
+			}
+		});
+
+		/**
+		 * Add action listener for save File browser.
+		 */
+		browseOutputFileButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent event) {
+				outputFileChooser.setAcceptAllFileFilterUsed(false);
+				outputFileChooser.setFileFilter(new FileNameExtensionFilter("JSON File", "json"));
+				boolean acceptable = false;
+				do {
+					int returnVal = outputFileChooser.showSaveDialog((Component) event.getSource());
+					if (returnVal == JFileChooser.APPROVE_OPTION) {
+						File file = outputFileChooser.getSelectedFile();
+						if (file.exists()) {// if the file exists ask the user if the file can be replaced.
+							int result = JOptionPane.showConfirmDialog((Component) event.getSource(),
+									"The file exists, are you sure you want to overwrite?", "Overwrite?",
+									JOptionPane.YES_NO_CANCEL_OPTION);
+							if (result == JOptionPane.YES_OPTION) {
+								// User doens't mind in replacing the file.
+								acceptable = true;
+								outputFileName = outputFileChooser.getSelectedFile().toString();
+								outputFileNameTextField.setText(outputFileName);
+							} else {
+								acceptable = false;
+							}
+						} else {
+							// file doesn't exist so no wories just pass
+							acceptable = true;
+							outputFileName = outputFileChooser.getSelectedFile().toString();
+							outputFileNameTextField.setText(outputFileName);
+						}
+					} else {
+						// User canceled browsing for output file name.
+						statusTextArea.setText("File access cancelled by User");
+						acceptable = true;
+					}
+				} while (!acceptable);
+			}
+		});
+		
+		
+		/**
+		 * Add action listner for start converting Button..
+		 */
+		
 	}
 
 	/**
@@ -153,18 +240,18 @@ public class gui {
 
 		numberOfYGridsTaken += 3;
 
+		
 		// add separator here.
-
 		separator.setBounds((int) oneGridx, (int) ((numberOfYGridsTaken + 1) * oneGridy),
 				(int) ((quantizedPartsx - 2) * oneGridx), 1);
 		frame.add(separator);
 
 		numberOfYGridsTaken += 1;
 
+		
 		/**
 		 * output file area
 		 */
-
 		outputFileLabel.setBounds((int) oneGridx, (int) ((numberOfYGridsTaken + 1) * oneGridy),
 				(int) (labelWidthInGrid * oneGridx), (int) (oneGridy));
 		frame.getContentPane().add(outputFileLabel);
@@ -194,7 +281,6 @@ public class gui {
 		/**
 		 * Status area
 		 */
-
 		statusFileLabel.setBounds((int) (((quantizedPartsx / 2) - 1) * oneGridx),
 				(int) ((numberOfYGridsTaken + 1) * oneGridy), (int) (labelWidthInGrid * oneGridx), (int) (oneGridy));
 		frame.getContentPane().add(statusFileLabel);
@@ -202,10 +288,10 @@ public class gui {
 		numberOfYGridsTaken += 2;// one for offset from above and one for the height itself.
 
 		System.out.println(numberOfYGridsTaken);
-		textArea.setBounds((int) (2 * oneGridx), (int) ((numberOfYGridsTaken + 1) * oneGridy),
+		statusTextArea.setBounds((int) (2 * oneGridx), (int) ((numberOfYGridsTaken + 1) * oneGridy),
 				(int) ((quantizedPartsx - 4) * oneGridx),
 				(int) ((quantizedPartsy - numberOfYGridsTaken - 5) * oneGridy));
-		frame.getContentPane().add(textArea);
+		frame.getContentPane().add(statusTextArea);
 
 		numberOfYGridsTaken += quantizedPartsy - numberOfYGridsTaken - 5 + 1;
 
