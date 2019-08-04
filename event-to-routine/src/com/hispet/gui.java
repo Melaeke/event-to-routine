@@ -9,7 +9,12 @@ import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.IOException;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -84,7 +89,7 @@ public class gui {
 			// preserve aspect ratio using the minimum value. aspect ratio is width /
 			// height.
 			if (totalWidth > aspectRatio * totalHeight) {
-				// height is small so decrease the width to accomodate the limitation of height.
+				// height is small so decrease the width to accommodate the limitation of height.
 				totalWidth = aspectRatio * totalHeight;
 			} else {
 				// width is small so preserve the aspect ratio by decreasing the width.
@@ -144,6 +149,10 @@ public class gui {
 		browseInputFileButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent event) {
+				inputFileChooser.setAcceptAllFileFilterUsed(false);
+				inputFileChooser.addChoosableFileFilter(new FileNameExtensionFilter("Zip compressed", "zip"));
+				inputFileChooser.addChoosableFileFilter(new FileNameExtensionFilter("JSON file", "json"));
+				inputFileChooser.addChoosableFileFilter(new FileNameExtensionFilter("All supported File Types", "zip","json"));
 				int returnVal = inputFileChooser.showOpenDialog((Component) event.getSource());
 				if (returnVal == JFileChooser.APPROVE_OPTION) {
 					File file = inputFileChooser.getSelectedFile();
@@ -202,12 +211,61 @@ public class gui {
 				} while (!acceptable);
 			}
 		});
-		
-		
+
 		/**
-		 * Add action listner for start converting Button..
+		 * Add action listener for start converting Button..
 		 */
-		
+		startButton.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent event) {
+				outputFileName = outputFileNameTextField.getText().toString();
+				inputFileName = inputFileNameTextField.getText().toString();
+
+				// check if the fileNames are empty. if they are remove everything.
+				if (outputFileName.equals("") || inputFileName.equals("")) {
+					System.out.println("input files are empty");
+					JOptionPane.showMessageDialog(null, "Please provide both input and output files.");
+				}
+				// Re-check the output file if it exists, ask the user again for
+				// confirmation to overwrite.
+				File outputFile = new File(outputFileName);
+				if (outputFile.exists()) {
+					// file exists re-check with user for rewrite.
+					int result = JOptionPane.showConfirmDialog((Component) event.getSource(),
+							"File " + outputFile + " exists, are you sure you want to overwrite?", "Overwrite?",
+							JOptionPane.YES_NO_OPTION);
+					if (result != JOptionPane.YES_OPTION) {
+						System.out.println("User minds in replacing the file");
+						return;
+					}
+				}
+				
+				// If control reaches here you can write on the file.
+				/**
+				 * Start processing here.
+				 */
+				try {
+					
+					//Check if the file is a zip file. If it is first unzip it to a temporary folder.
+					//and then using the unzipped file, convert it to routine event.
+					//after the unzipped file is converted, delete it.
+					
+					ZipInputStream zis = new ZipInputStream(new FileInputStream(inputFileName));
+					ZipEntry zipEntry = zis.getNextEntry();
+					
+					
+					//https://www.baeldung.com/java-compress-and-uncompress
+				} catch (FileNotFoundException ex) {
+					// If it reached here the File doesn't exist or something happens.
+					statusTextArea.setText("Input File doesn't exist please provide a proper file\nEROR : "+ex.getMessage());
+					ex.printStackTrace();
+				}catch(IOException ex) {
+					ex.printStackTrace();
+					statusTextArea.setText("IO exception on input File\nEROR : "+ex.getMessage());
+				}
+			}
+		});
 	}
 
 	/**
@@ -240,7 +298,6 @@ public class gui {
 
 		numberOfYGridsTaken += 3;
 
-		
 		// add separator here.
 		separator.setBounds((int) oneGridx, (int) ((numberOfYGridsTaken + 1) * oneGridy),
 				(int) ((quantizedPartsx - 2) * oneGridx), 1);
@@ -248,7 +305,6 @@ public class gui {
 
 		numberOfYGridsTaken += 1;
 
-		
 		/**
 		 * output file area
 		 */
