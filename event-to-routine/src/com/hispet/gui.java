@@ -11,6 +11,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.zip.ZipEntry;
@@ -89,7 +90,8 @@ public class gui {
 			// preserve aspect ratio using the minimum value. aspect ratio is width /
 			// height.
 			if (totalWidth > aspectRatio * totalHeight) {
-				// height is small so decrease the width to accommodate the limitation of height.
+				// height is small so decrease the width to accommodate the limitation of
+				// height.
 				totalWidth = aspectRatio * totalHeight;
 			} else {
 				// width is small so preserve the aspect ratio by decreasing the width.
@@ -152,7 +154,8 @@ public class gui {
 				inputFileChooser.setAcceptAllFileFilterUsed(false);
 				inputFileChooser.addChoosableFileFilter(new FileNameExtensionFilter("Zip compressed", "zip"));
 				inputFileChooser.addChoosableFileFilter(new FileNameExtensionFilter("JSON file", "json"));
-				inputFileChooser.addChoosableFileFilter(new FileNameExtensionFilter("All supported File Types", "zip","json"));
+				inputFileChooser
+						.addChoosableFileFilter(new FileNameExtensionFilter("All supported File Types", "zip", "json"));
 				int returnVal = inputFileChooser.showOpenDialog((Component) event.getSource());
 				if (returnVal == JFileChooser.APPROVE_OPTION) {
 					File file = inputFileChooser.getSelectedFile();
@@ -240,29 +243,53 @@ public class gui {
 						return;
 					}
 				}
-				
+
 				// If control reaches here you can write on the file.
 				/**
 				 * Start processing here.
 				 */
-				try {
-					
-					//Check if the file is a zip file. If it is first unzip it to a temporary folder.
-					//and then using the unzipped file, convert it to routine event.
-					//after the unzipped file is converted, delete it.
-					
-					ZipInputStream zis = new ZipInputStream(new FileInputStream(inputFileName));
-					ZipEntry zipEntry = zis.getNextEntry();
-					
-					
-					//https://www.baeldung.com/java-compress-and-uncompress
-				} catch (FileNotFoundException ex) {
-					// If it reached here the File doesn't exist or something happens.
-					statusTextArea.setText("Input File doesn't exist please provide a proper file\nEROR : "+ex.getMessage());
-					ex.printStackTrace();
-				}catch(IOException ex) {
-					ex.printStackTrace();
-					statusTextArea.setText("IO exception on input File\nEROR : "+ex.getMessage());
+				if (inputFileName.endsWith("zip")) {
+					// the file is a zip file so first uncompress the file before processing.
+					try {
+
+						//The output dir to use as a temporary uncompressing location
+						File outputDir = new File(outputFile.getParent());
+						
+						ZipInputStream zis = new ZipInputStream(new FileInputStream(inputFileName));
+						ZipEntry zipEntry = zis.getNextEntry();
+						
+						if(!zipEntry.getName().equals("metadata.json")) {
+							//The file in the zip is not metadata.json so display error message.
+							Main.displayErrorMessage("Input compressed should only contain metadata.json");
+							return;
+						}
+						
+						File newFile =new File(outputDir,zipEntry.getName());
+						FileOutputStream fos = new FileOutputStream(newFile);
+						int len; 
+						byte[] buffer = new byte[1024];
+						while((len = zis.read(buffer))>0) {
+							fos.write(buffer,0,len);
+						}
+						
+						Main.display("Uncompressed file sucessfully");
+						fos.close();
+						
+						zis.closeEntry();
+						zis.close();
+						// https://www.baeldung.com/java-compress-and-uncompress
+					} catch (FileNotFoundException ex) {
+						// If it reached here the File doesn't exist or something happens.
+						statusTextArea.setText(
+								"Input File doesn't exist please provide a proper file\nEROR : " + ex.getMessage());
+						ex.printStackTrace();
+					} catch (IOException ex) {
+						ex.printStackTrace();
+						statusTextArea.setText("IO exception on input File\nEROR : " + ex.getMessage());
+					}
+					/********
+					 * You are here now. You have successfully uncompressed the file and now you need to convert it save delete the temp file.
+					 */
 				}
 			}
 		});
