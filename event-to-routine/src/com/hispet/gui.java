@@ -248,33 +248,38 @@ public class gui {
 				/**
 				 * Start processing here.
 				 */
+				File newFile = null;
 				if (inputFileName.endsWith("zip")) {
 					// the file is a zip file so first uncompress the file before processing.
 					try {
 
-						//The output dir to use as a temporary uncompressing location
+						// The output dir to use as a temporary uncompressing location
 						File outputDir = new File(outputFile.getParent());
-						
+
 						ZipInputStream zis = new ZipInputStream(new FileInputStream(inputFileName));
 						ZipEntry zipEntry = zis.getNextEntry();
-						
-						if(!zipEntry.getName().equals("metadata.json")) {
-							//The file in the zip is not metadata.json so display error message.
+
+						if (!zipEntry.getName().equals("metadata.json")) {
+							// The file in the zip is not metadata.json so display error message.
 							Main.displayErrorMessage("Input compressed should only contain metadata.json");
+							zis.close();
 							return;
 						}
-						
-						File newFile =new File(outputDir,zipEntry.getName());
-						FileOutputStream fos = new FileOutputStream(newFile);
-						int len; 
-						byte[] buffer = new byte[1024];
-						while((len = zis.read(buffer))>0) {
-							fos.write(buffer,0,len);
+
+						newFile = new File(outputDir, zipEntry.getName());
+						if (newFile.exists()) {// if it exists change the fileName
+							newFile = new File(outputDir, "tempMetadata" + System.currentTimeMillis() + ".json");
 						}
-						
+						FileOutputStream fos = new FileOutputStream(newFile);
+						int len;
+						byte[] buffer = new byte[1024];
+						while ((len = zis.read(buffer)) > 0) {
+							fos.write(buffer, 0, len);
+						}
+
 						Main.display("Uncompressed file sucessfully");
 						fos.close();
-						
+
 						zis.closeEntry();
 						zis.close();
 						// https://www.baeldung.com/java-compress-and-uncompress
@@ -287,9 +292,21 @@ public class gui {
 						ex.printStackTrace();
 						statusTextArea.setText("IO exception on input File\nEROR : " + ex.getMessage());
 					}
-					/********
-					 * You are here now. You have successfully uncompressed the file and now you need to convert it save delete the temp file.
-					 */
+					int returnVal;
+
+					if (newFile == null) {
+						// this means that the input is a json and not compressed
+						returnVal = Main.startProcessing(inputFileName, outputFileName);
+					} else {
+						// this means the input file is not compressed but JSON.
+						returnVal = Main.startProcessing(newFile.getAbsolutePath(), outputFileName);
+					}
+					if(returnVal == 1) {
+						statusTextArea.setText("Finished successfully!!!");
+					}else {
+						statusTextArea.setText("Conversion unsuccessful.");
+					}
+
 				}
 			}
 		});
