@@ -1,6 +1,7 @@
 package com.hispet;
 
 import java.awt.EventQueue;
+import java.awt.Insets;
 import java.awt.Rectangle;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
@@ -42,7 +43,7 @@ public class gui {
 	JLabel outputFileLabel = new JLabel("Output File");
 	JButton browseOutputFileButton = new JButton("Browse");
 	JSeparator separator2 = new JSeparator();
-	JLabel statusFileLabel = new JLabel("Status");
+	JLabel statusLabel = new JLabel("Status");
 	JTextArea statusTextArea = new JTextArea("Browse the file you want to convert And press start");
 	JButton startButton = new JButton("Start");
 	JFileChooser inputFileChooser = new JFileChooser();
@@ -84,8 +85,8 @@ public class gui {
 	private static void initializeSizes(double maxWidth, double maxHeight, boolean resized) {
 		if (!resized) {
 			// If not resized, make the screen 20% of the total size.
-			totalWidth = maxWidth * 0.2;
-			totalHeight = maxHeight * 0.2;
+			totalWidth = maxWidth * 0.5;
+			totalHeight = maxHeight * 0.5;
 
 			// preserve aspect ratio using the minimum value. aspect ratio is width /
 			// height.
@@ -102,8 +103,6 @@ public class gui {
 			totalHeight = maxHeight;
 		}
 
-		oneGridx = totalWidth / quantizedPartsx;
-		oneGridy = totalHeight / quantizedPartsy;
 
 	}
 
@@ -321,6 +320,16 @@ public class gui {
 		frame.setBounds(10, 10, (int) totalWidth, (int) totalHeight);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.getContentPane().setLayout(null);
+		
+		/**
+		 * This is useful speciallly for windows, because on Windows, a title bar and other borders are inserted
+		 * which need to be subtracted for proper addition of items.
+		 */
+		Insets insets = frame.getInsets();
+		
+		
+		oneGridx = (totalWidth -insets.left-insets.right)/ quantizedPartsx;
+		oneGridy = (totalHeight - insets.top-insets.bottom)/ quantizedPartsy;
 
 		/**
 		 * input file area
@@ -381,9 +390,9 @@ public class gui {
 		/**
 		 * Status area
 		 */
-		statusFileLabel.setBounds((int) (((quantizedPartsx / 2) - 1) * oneGridx),
+		statusLabel.setBounds((int) (((quantizedPartsx / 2) - 1) * oneGridx),
 				(int) ((numberOfYGridsTaken + 1) * oneGridy), (int) (labelWidthInGrid * oneGridx), (int) (oneGridy));
-		frame.getContentPane().add(statusFileLabel);
+		frame.getContentPane().add(statusLabel);
 
 		numberOfYGridsTaken += 2;// one for offset from above and one for the height itself.
 
