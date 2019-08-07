@@ -44,7 +44,7 @@ public class gui {
 	JButton browseOutputFileButton = new JButton("Browse");
 	JSeparator separator2 = new JSeparator();
 	JLabel statusLabel = new JLabel("Status");
-	JTextArea statusTextArea = new JTextArea("Browse the file you want to convert And press start");
+	public static JTextArea statusTextArea = new JTextArea("Browse the file you want to convert And press start");
 	JButton startButton = new JButton("Start");
 	JFileChooser inputFileChooser = new JFileChooser();
 	JFileChooser outputFileChooser = new JFileChooser();
@@ -103,7 +103,6 @@ public class gui {
 			totalHeight = maxHeight;
 		}
 
-
 	}
 
 	/**
@@ -122,7 +121,6 @@ public class gui {
 						public void componentResized(ComponentEvent event) {
 							// here reinitialize the window size.
 							Rectangle size = event.getComponent().getBounds();
-							System.out.println(size);
 							initializeSizes(size.getWidth(), size.getHeight(), true);
 							window.initialize();
 						}
@@ -165,10 +163,11 @@ public class gui {
 						BufferedReader reader = new BufferedReader(new FileReader(inputFileName));
 						reader.close();
 					} catch (Exception ex) {
-						statusTextArea.setText("Problem Accessing file \n" + file.toString() + " : " + ex);
+						statusTextArea.append("\nProblem Accessing file \n" + file.toString() + " : " + ex);
+						ex.printStackTrace();
 					}
 				} else {
-					statusTextArea.setText("File access cancelled by User");
+					statusTextArea.append("\nFile access cancelled by User");
 				}
 
 			}
@@ -186,7 +185,11 @@ public class gui {
 				do {
 					int returnVal = outputFileChooser.showSaveDialog((Component) event.getSource());
 					if (returnVal == JFileChooser.APPROVE_OPTION) {
-						File file = outputFileChooser.getSelectedFile();
+						String fileName=outputFileChooser.getSelectedFile().toString();
+						if(!fileName.endsWith("json")) {
+							fileName=fileName+".json";
+						}
+						File file = new File(fileName);
 						if (file.exists()) {// if the file exists ask the user if the file can be replaced.
 							int result = JOptionPane.showConfirmDialog((Component) event.getSource(),
 									"The file exists, are you sure you want to overwrite?", "Overwrite?",
@@ -194,7 +197,7 @@ public class gui {
 							if (result == JOptionPane.YES_OPTION) {
 								// User doens't mind in replacing the file.
 								acceptable = true;
-								outputFileName = outputFileChooser.getSelectedFile().toString();
+								outputFileName = fileName;
 								outputFileNameTextField.setText(outputFileName);
 							} else {
 								acceptable = false;
@@ -202,12 +205,12 @@ public class gui {
 						} else {
 							// file doesn't exist so no wories just pass
 							acceptable = true;
-							outputFileName = outputFileChooser.getSelectedFile().toString();
+							outputFileName = fileName;
 							outputFileNameTextField.setText(outputFileName);
 						}
 					} else {
 						// User canceled browsing for output file name.
-						statusTextArea.setText("File access cancelled by User");
+						statusTextArea.append("\nFile access cancelled by User");
 						acceptable = true;
 					}
 				} while (!acceptable);
@@ -226,7 +229,8 @@ public class gui {
 
 				// check if the fileNames are empty. if they are remove everything.
 				if (outputFileName.equals("") || inputFileName.equals("")) {
-					System.out.println("input files are empty");
+					statusTextArea.append("\nUser didn't provide both input and output files.");
+					frame.repaint();
 					JOptionPane.showMessageDialog(null, "Please provide both input and output files.");
 				}
 				// Re-check the output file if it exists, ask the user again for
@@ -238,7 +242,8 @@ public class gui {
 							"File " + outputFile + " exists, are you sure you want to overwrite?", "Overwrite?",
 							JOptionPane.YES_NO_OPTION);
 					if (result != JOptionPane.YES_OPTION) {
-						System.out.println("User minds in replacing the file");
+						statusTextArea.append("\nConversion canceled by user.");
+						frame.repaint();
 						return;
 					}
 				}
@@ -260,7 +265,9 @@ public class gui {
 
 						if (!zipEntry.getName().equals("metadata.json")) {
 							// The file in the zip is not metadata.json so display error message.
-							Main.displayErrorMessage("Input compressed should only contain metadata.json");
+							statusTextArea.append("\nERROR : The compressed file " + inputFileName
+									+ " should contain only one file named \"metadata.json\"");
+							frame.repaint();
 							zis.close();
 							return;
 						}
@@ -269,6 +276,8 @@ public class gui {
 						if (newFile.exists()) {// if it exists change the fileName
 							newFile = new File(outputDir, "tempMetadata" + System.currentTimeMillis() + ".json");
 						}
+						statusTextArea.append("\nUncompressing input file...");
+						frame.repaint();
 						FileOutputStream fos = new FileOutputStream(newFile);
 						int len;
 						byte[] buffer = new byte[1024];
@@ -276,7 +285,7 @@ public class gui {
 							fos.write(buffer, 0, len);
 						}
 
-						Main.display("Uncompressed file sucessfully");
+						statusTextArea.append("\nFinished uncompressing file successfully");
 						fos.close();
 
 						zis.closeEntry();
@@ -284,29 +293,32 @@ public class gui {
 						// https://www.baeldung.com/java-compress-and-uncompress
 					} catch (FileNotFoundException ex) {
 						// If it reached here the File doesn't exist or something happens.
-						statusTextArea.setText(
-								"Input File doesn't exist please provide a proper file\nEROR : " + ex.getMessage());
+						statusTextArea.append(
+								"\nInput File doesn't exist please provide a proper file\nEROR : " + ex.getMessage());
 						ex.printStackTrace();
 					} catch (IOException ex) {
 						ex.printStackTrace();
-						statusTextArea.setText("IO exception on input File\nEROR : " + ex.getMessage());
+						statusTextArea.setText("\nIO exception on input File\nEROR : " + ex.getMessage());
 					}
-					int returnVal;
-
-					if (newFile == null) {
-						// this means that the input is a json and not compressed
-						returnVal = Main.startProcessing(inputFileName, outputFileName);
-					} else {
-						// this means the input file is not compressed but JSON.
-						returnVal = Main.startProcessing(newFile.getAbsolutePath(), outputFileName);
-					}
-					if(returnVal == 1) {
-						statusTextArea.setText("Finished successfully!!!");
-					}else {
-						statusTextArea.setText("Conversion unsuccessful.");
-					}
-
+					
 				}
+				int returnVal;
+				if (newFile == null) {
+					// this means that the input is a json and not compressed
+					returnVal = Main.startProcessing(inputFileName, outputFileName);
+				} else {
+					// this means the input file is a compressed file.
+					returnVal = Main.startProcessing(newFile.getAbsolutePath(), outputFileName);
+					//Delete the extracted file.
+					if(newFile.delete()) {
+						System.out.println("Successfully deleted the temporary uncompressed file");
+					}
+				}
+				if (returnVal == 1) {
+					statusTextArea.setText("Finished successfully!!!");
+				} else {
+					statusTextArea.setText("ERROR : Conversion unsuccessful.");
+				} 
 			}
 		});
 	}
@@ -320,16 +332,16 @@ public class gui {
 		frame.setBounds(10, 10, (int) totalWidth, (int) totalHeight);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.getContentPane().setLayout(null);
-		
+
 		/**
-		 * This is useful speciallly for windows, because on Windows, a title bar and other borders are inserted
-		 * which need to be subtracted for proper addition of items.
+		 * This is useful speciallly for windows, because on Windows, a title bar and
+		 * other borders are inserted which need to be subtracted for proper addition of
+		 * items.
 		 */
 		Insets insets = frame.getInsets();
-		
-		
-		oneGridx = (totalWidth -insets.left-insets.right)/ quantizedPartsx;
-		oneGridy = (totalHeight - insets.top-insets.bottom)/ quantizedPartsy;
+
+		oneGridx = (totalWidth - insets.left - insets.right) / quantizedPartsx;
+		oneGridy = (totalHeight - insets.top - insets.bottom) / quantizedPartsy;
 
 		/**
 		 * input file area

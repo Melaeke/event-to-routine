@@ -24,22 +24,22 @@ public class Event {
 	public static JSONObject categoryOptionsFromEventDataElements;
 
 	public static JSONObject allEvents = new JSONObject();
-	
+
 	/**
 	 * This is used to track the size of allEvents not to use the Iterator.
 	 */
-	public static int allEventsSize =0;
-	
+	public static int allEventsSize = 0;
+
 	/**
 	 * This counts all the dataValues in all events except the diseaseCode dataValue
 	 */
-	public static int allDataValuesSize=0;
-	
+	public static int allDataValuesSize = 0;
+
 	/**
-	 * This counts the number of events which don't have Disease code in their DV array.
+	 * This counts the number of events which don't have Disease code in their DV
+	 * array.
 	 */
 	public static int eventsWithNoDiseaseCode = 0;
-	
 
 	private String eventId;
 
@@ -86,21 +86,20 @@ public class Event {
 		// dataValue array of the event so look for them inside the datavalue of the
 		// event.
 		for (Object dv : dataValues) {
-			
+
 			// find the catCombo using the dataValue
 			JSONObject dataValue = (JSONObject) dv;
-			String tempDE=dataValue.getString("dataElement");
-			
-			//if the dataElement in the dv is the disease DE then continue.
-			if(tempDE.equals(diseaseDataElement)) {
+			String tempDE = dataValue.getString("dataElement");
+
+			// if the dataElement in the dv is the disease DE then continue.
+			if (tempDE.equals(diseaseDataElement)) {
 				continue;
 			}
-			
-			//increment dataValueSize if the dv is not disease code
+
+			// increment dataValueSize if the dv is not disease code
 			allDataValuesSize++;
-			
-			String categoryOptionCombo = categoryOptionsFromEventDataElements
-					.getString(tempDE);
+
+			String categoryOptionCombo = categoryOptionsFromEventDataElements.getString(tempDE);
 
 			// using all the unique fields, create an ID so that we can use this unique ID
 			// to check if the event was already created or a new one needs to be created.
@@ -120,18 +119,24 @@ public class Event {
 
 				// push back the new object to allEvents object.
 				allEvents.put(key, event);
-				
-				
+
 			} else {
 				// event doesn't exist so create one and push it to the array.
 				Event event = new Event();
-				event.setAttributeOptionCombo(attributeOptionCombo);
-				event.setCategoryOptionCombo(categoryOptionCombo);
-				event.setDataElement(dataElement);
-				event.setOrgUnit(orgUnit);
-				event.setPeriod(period);
-				event.setStoredBy(dataValue.getString("storedBy"));
-				event.setValue(dataValue.getInt("value"));
+				try {
+					event.setAttributeOptionCombo(attributeOptionCombo);
+					event.setCategoryOptionCombo(categoryOptionCombo);
+					event.setDataElement(dataElement);
+					event.setOrgUnit(orgUnit);
+					event.setPeriod(period);
+					event.setStoredBy(dataValue.getString("storedBy"));
+					event.setValue(dataValue.getInt("value"));
+				} catch (Exception e) {
+					eventsWithNoDiseaseCode++;
+					System.out.println("JSON Error: "+e);
+					e.printStackTrace();
+					continue;
+				}
 
 				// push the new event to allEvents
 				allEvents.put(key, event);

@@ -27,7 +27,8 @@ public class Main {
 	}
 
 	public static int startProcessing(String inputFileName, String outputFileName) {
-
+		gui.statusTextArea.append("\nReading input file...");
+		
 		JSONArray events=null;
 		try {
 			events = readJSON(inputFileName, false).getJSONArray("events");
@@ -50,6 +51,7 @@ public class Main {
 			Event.addEvent((JSONObject) obj);
 		}
 
+		gui.statusTextArea.append("\nFinsihed reading file. Startign conversion");
 		JSONArray finalEventsArray = new JSONArray();
 		// Now I have all the Events changed I need it to change it to a JSON array and
 		// export it.
@@ -66,6 +68,11 @@ public class Main {
 		display("All Event dataValuesFinal:" + Event.allEventsSize);
 		display("All Events oridginally : " + events.length());
 		display("Events which aren't imported because of DISease code : " + Event.eventsWithNoDiseaseCode);
+		
+		gui.statusTextArea.append("\nFinished conversion.");
+		gui.statusTextArea.append("\n Converted Data Values : "+Event.allDataValuesSize);
+		gui.statusTextArea.append("\n Ignored because of Disease code : "+Event.eventsWithNoDiseaseCode);
+		gui.statusTextArea.append("\nWriting data to file");
 		
 		try {
 			OutputStream os = new FileOutputStream(outputFileName);
