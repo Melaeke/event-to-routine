@@ -75,7 +75,7 @@ public class Event {
 
 		// these are the default for all the data values in this event
 
-		String period = obj.getString("dueDate");
+		String period = obj.getString("eventDate");
 		period = period.substring(0, 4) + period.substring(5, 7);
 		String orgUnit = obj.getString("orgUnit");
 		String attributeOptionCombo = obj.getString("attributeOptionCombo");

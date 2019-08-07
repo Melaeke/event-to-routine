@@ -28,7 +28,7 @@ import javax.swing.JFileChooser;
 
 public class gui {
 
-	public static JFrame frame;
+	JFrame frame;
 	public static JTextField inputFileNameTextField = new JTextField();
 	public static JTextField outputFileNameTextField = new JTextField();
 	public static JLabel inputFileLabel = new JLabel("Input File");
