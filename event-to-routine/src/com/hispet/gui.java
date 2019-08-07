@@ -10,13 +10,7 @@ import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.FileReader;
-import java.io.IOException;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -34,23 +28,23 @@ import javax.swing.JFileChooser;
 
 public class gui {
 
-	private JFrame frame;
-	private JTextField inputFileNameTextField = new JTextField();
-	private JTextField outputFileNameTextField = new JTextField();
-	JLabel inputFileLabel = new JLabel("Input File");
-	JButton browseInputFileButton = new JButton("Browse");
-	JSeparator separator = new JSeparator();
-	JLabel outputFileLabel = new JLabel("Output File");
-	JButton browseOutputFileButton = new JButton("Browse");
-	JSeparator separator2 = new JSeparator();
-	JLabel statusLabel = new JLabel("Status");
+	public static JFrame frame;
+	public static JTextField inputFileNameTextField = new JTextField();
+	public static JTextField outputFileNameTextField = new JTextField();
+	public static JLabel inputFileLabel = new JLabel("Input File");
+	public static JButton browseInputFileButton = new JButton("Browse");
+	public static JSeparator separator = new JSeparator();
+	public static JLabel outputFileLabel = new JLabel("Output File");
+	public static JButton browseOutputFileButton = new JButton("Browse");
+	public static JSeparator separator2 = new JSeparator();
+	public static JLabel statusLabel = new JLabel("Status");
 	public static JTextArea statusTextArea = new JTextArea("Browse the file you want to convert And press start");
-	JButton startButton = new JButton("Start");
-	JFileChooser inputFileChooser = new JFileChooser();
-	JFileChooser outputFileChooser = new JFileChooser();
+	public static JButton startButton = new JButton("Start");
+	public static JFileChooser inputFileChooser = new JFileChooser();
+	public static JFileChooser outputFileChooser = new JFileChooser();
 
-	String inputFileName = "";
-	String outputFileName = "";
+	public static String inputFileName = "";
+	public static String outputFileName = "";
 
 	private static Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
 
@@ -224,101 +218,10 @@ public class gui {
 
 			@Override
 			public void actionPerformed(ActionEvent event) {
-				outputFileName = outputFileNameTextField.getText().toString();
-				inputFileName = inputFileNameTextField.getText().toString();
-
-				// check if the fileNames are empty. if they are remove everything.
-				if (outputFileName.equals("") || inputFileName.equals("")) {
-					statusTextArea.append("\nUser didn't provide both input and output files.");
-					frame.repaint();
-					JOptionPane.showMessageDialog(null, "Please provide both input and output files.");
-				}
-				// Re-check the output file if it exists, ask the user again for
-				// confirmation to overwrite.
-				File outputFile = new File(outputFileName);
-				if (outputFile.exists()) {
-					// file exists re-check with user for rewrite.
-					int result = JOptionPane.showConfirmDialog((Component) event.getSource(),
-							"File " + outputFile + " exists, are you sure you want to overwrite?", "Overwrite?",
-							JOptionPane.YES_NO_OPTION);
-					if (result != JOptionPane.YES_OPTION) {
-						statusTextArea.append("\nConversion canceled by user.");
-						frame.repaint();
-						return;
-					}
-				}
-
-				// If control reaches here you can write on the file.
-				/**
-				 * Start processing here.
-				 */
-				File newFile = null;
-				if (inputFileName.endsWith("zip")) {
-					// the file is a zip file so first uncompress the file before processing.
-					try {
-
-						// The output dir to use as a temporary uncompressing location
-						File outputDir = new File(outputFile.getParent());
-
-						ZipInputStream zis = new ZipInputStream(new FileInputStream(inputFileName));
-						ZipEntry zipEntry = zis.getNextEntry();
-
-						if (!zipEntry.getName().equals("metadata.json")) {
-							// The file in the zip is not metadata.json so display error message.
-							statusTextArea.append("\nERROR : The compressed file " + inputFileName
-									+ " should contain only one file named \"metadata.json\"");
-							frame.repaint();
-							zis.close();
-							return;
-						}
-
-						newFile = new File(outputDir, zipEntry.getName());
-						if (newFile.exists()) {// if it exists change the fileName
-							newFile = new File(outputDir, "tempMetadata" + System.currentTimeMillis() + ".json");
-						}
-						statusTextArea.append("\nUncompressing input file...");
-						frame.repaint();
-						FileOutputStream fos = new FileOutputStream(newFile);
-						int len;
-						byte[] buffer = new byte[1024];
-						while ((len = zis.read(buffer)) > 0) {
-							fos.write(buffer, 0, len);
-						}
-
-						statusTextArea.append("\nFinished uncompressing file successfully");
-						fos.close();
-
-						zis.closeEntry();
-						zis.close();
-						// https://www.baeldung.com/java-compress-and-uncompress
-					} catch (FileNotFoundException ex) {
-						// If it reached here the File doesn't exist or something happens.
-						statusTextArea.append(
-								"\nInput File doesn't exist please provide a proper file\nEROR : " + ex.getMessage());
-						ex.printStackTrace();
-					} catch (IOException ex) {
-						ex.printStackTrace();
-						statusTextArea.setText("\nIO exception on input File\nEROR : " + ex.getMessage());
-					}
-					
-				}
-				int returnVal;
-				if (newFile == null) {
-					// this means that the input is a json and not compressed
-					returnVal = Main.startProcessing(inputFileName, outputFileName);
-				} else {
-					// this means the input file is a compressed file.
-					returnVal = Main.startProcessing(newFile.getAbsolutePath(), outputFileName);
-					//Delete the extracted file.
-					if(newFile.delete()) {
-						System.out.println("Successfully deleted the temporary uncompressed file");
-					}
-				}
-				if (returnVal == 1) {
-					statusTextArea.setText("Finished successfully!!!");
-				} else {
-					statusTextArea.setText("ERROR : Conversion unsuccessful.");
-				} 
+				
+				statusTextArea.append("\nStarted conversion...");
+				new ProcessWorker(event).execute();
+				
 			}
 		});
 	}
