@@ -1,19 +1,20 @@
 package com.hispet;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.util.Iterator;
 import java.util.Scanner;
 
+
 import org.json.*;
+
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * 
@@ -26,18 +27,21 @@ public class Main {
 		
 	}
 
-	public static int startProcessing(String inputFileName, String outputFileName) {
-		gui.statusTextArea.append("\nReading input file...");
+	public static int startProcessing(String inputFileName, String outputFileName, ProcessWorker worker) {
+		worker.showMessage("\nReading input file...");
 		
-		JSONArray events=null;
+		ObjectMapper objectMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+		JsonNode temp=null;
 		try {
-			events = readJSON(inputFileName, false).getJSONArray("events");
-		} catch (JSONException | IOException e1) {
+			temp = objectMapper.readTree(new File(inputFileName));
+		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e1.printStackTrace();
-			return 0;
+			e.printStackTrace();
 		}
-
+		
+		Event[] events = objectMapper.convertValue(temp.get("events"), Event[].class);
+		
+		
 		// first create a loop to iterate on every event.
 
 		// for every event, create an Event object to save the data.
@@ -46,41 +50,41 @@ public class Main {
 		// if the ID exists add the values and then just move
 		// if the id doesn't exist create a new object and return that object to the new
 		// one.
-
-		for (Object obj : events) {
-			Event.addEvent((JSONObject) obj);
+		for(int i=0;i<events.length;i++) {
+			EventProcessor.addEvent(events[i]);
 		}
-
-		gui.statusTextArea.append("\nFinsihed reading file. Startign conversion");
-		JSONArray finalEventsArray = new JSONArray();
+		System.out.println("Events which don't have evetDate : "+EventProcessor.eventDateCounter);
+		
+		System.out.println("finished");
+		worker.showMessage("\nFinsihed reading file. Starting conversion");
 		// Now I have all the Events changed I need it to change it to a JSON array and
 		// export it.
-		Iterator<String> keys = Event.allEvents.keys();
-		while (keys.hasNext()) {
-			String key = keys.next();
-			Event e = (Event) Event.allEvents.get(key);
-			JSONObject temp = new JSONObject(e);
-			finalEventsArray.put(temp);
+		Object[] keys = EventProcessor.allEvents.keySet().toArray();
+		DataValue[] finalDataValue = new DataValue[EventProcessor.allEvents.keySet().size()];
+		for(int i = 0 ; i<keys.length;i++) {
+			finalDataValue[i] = EventProcessor.allEvents.get((String)keys[i]);
 		}
-
-		display("all DataValues:" + Event.allDataValuesSize);
-		Event.allEvents.length();
-		display("All Event dataValuesFinal:" + Event.allEventsSize);
-		display("All Events oridginally : " + events.length());
-		display("Events which aren't imported because of DISease code : " + Event.eventsWithNoDiseaseCode);
 		
-		gui.statusTextArea.append("\nFinished conversion.");
-		gui.statusTextArea.append("\n Converted Data Values : "+Event.allDataValuesSize);
-		gui.statusTextArea.append("\n Ignored because of Disease code : "+Event.eventsWithNoDiseaseCode);
-		gui.statusTextArea.append("\nWriting data to file");
+		
+		display("all DataValues:" + EventProcessor.allDataValuesSize);
+		display("All Event dataValuesFinal:" + EventProcessor.allEventsSize);
+		display("All Events oridginally : " + events.length);
+		display("Events which aren't imported because of DISease code : " + EventProcessor.eventsWithNoDiseaseCode);
+		
+		worker.showMessage("\nFinished conversion.");
+		worker.showMessage("\n Converted Data Values : "+EventProcessor.allDataValuesSize);
+		worker.showMessage("\n Ignored because of Disease code : "+EventProcessor.eventsWithNoDiseaseCode);
+		worker.showMessage("\nWriting data to file");
 		
 		try {
-			OutputStream os = new FileOutputStream(outputFileName);
-
-			BufferedWriter buffWriter = new BufferedWriter(new OutputStreamWriter(os));
-
-			buffWriter.write(finalEventsArray.toString(4));
-			buffWriter.close();
+			FileOutputStream os = new FileOutputStream(outputFileName);
+			
+			DataValueSet tempOutput= new DataValueSet();
+			tempOutput.setDataValues(finalDataValue);
+			
+			ObjectMapper om = new ObjectMapper();
+			om.writeValue(os, tempOutput);
+			
 		} catch (JSONException | IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -108,7 +112,7 @@ public class Main {
 			buff.close();
 
 		} else {
-			Scanner scanner = new Scanner(Event.class.getResourceAsStream(fileName));
+			Scanner scanner = new Scanner(EventProcessor.class.getResourceAsStream(fileName));
 			while (scanner.hasNextLine()) {
 				sb.append(scanner.nextLine() + "\n");
 			}
@@ -129,5 +133,24 @@ public class Main {
 
 	public static void displayErrorMessage(String message) {
 		System.out.println("ERROR: " + message);
+	}
+	
+	
+	/**
+	 * This class is created so that the output would have a "{dataValues:[" at the begining so that importing
+	 * would be made easily
+	 * @author melaeke
+	 *
+	 */
+	static class DataValueSet{
+		public DataValue [] dataValues;
+		
+		public DataValue[] getDataValues() {
+			return dataValues;
+		}
+		
+		public void setDataValues(DataValue[] dataValues) {
+			this.dataValues=dataValues;
+		}
 	}
 }

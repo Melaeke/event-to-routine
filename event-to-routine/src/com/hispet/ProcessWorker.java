@@ -19,7 +19,6 @@ public class ProcessWorker extends SwingWorker<Void, String>{
 	public ProcessWorker(ActionEvent e) {
 		event = e;
 	}
-	
 
 	@Override
 	protected Void doInBackground() throws Exception {
@@ -100,10 +99,10 @@ public class ProcessWorker extends SwingWorker<Void, String>{
 		int returnVal;
 		if (newFile == null) {
 			// this means that the input is a json and not compressed
-			returnVal = Main.startProcessing(gui.inputFileName, gui.outputFileName);
+			returnVal = Main.startProcessing(gui.inputFileName, gui.outputFileName,this);
 		} else {
 			// this means the input file is a compressed file.
-			returnVal = Main.startProcessing(newFile.getAbsolutePath(), gui.outputFileName);
+			returnVal = Main.startProcessing(newFile.getAbsolutePath(), gui.outputFileName,this);
 			//Delete the extracted file.
 			if(newFile.delete()) {
 				System.out.println("Successfully deleted the temporary uncompressed file");
@@ -115,6 +114,10 @@ public class ProcessWorker extends SwingWorker<Void, String>{
 			publish("\nERROR : Conversion unsuccessful.");
 		} 
 		return null;
+	}
+	
+	public void showMessage(String message) {
+		publish(message);
 	}
 	
 	@Override

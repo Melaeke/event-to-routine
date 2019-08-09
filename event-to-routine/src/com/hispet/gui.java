@@ -15,6 +15,7 @@ import java.io.FileReader;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
+import javax.swing.JScrollPane;
 import javax.swing.JSeparator;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
@@ -42,6 +43,7 @@ public class gui {
 	public static JButton startButton = new JButton("Start");
 	public static JFileChooser inputFileChooser = new JFileChooser();
 	public static JFileChooser outputFileChooser = new JFileChooser();
+	public static JScrollPane scrollPane = new JScrollPane(statusTextArea);
 
 	public static String inputFileName = "";
 	public static String outputFileName = "";
@@ -220,6 +222,7 @@ public class gui {
 			public void actionPerformed(ActionEvent event) {
 				
 				statusTextArea.append("\nStarted conversion...");
+				
 				new ProcessWorker(event).execute();
 				
 			}
@@ -312,10 +315,11 @@ public class gui {
 		numberOfYGridsTaken += 2;// one for offset from above and one for the height itself.
 
 		System.out.println(numberOfYGridsTaken);
-		statusTextArea.setBounds((int) (2 * oneGridx), (int) ((numberOfYGridsTaken + 1) * oneGridy),
+		scrollPane.setBounds((int) (2 * oneGridx), (int) ((numberOfYGridsTaken + 1) * oneGridy),
 				(int) ((quantizedPartsx - 4) * oneGridx),
 				(int) ((quantizedPartsy - numberOfYGridsTaken - 5) * oneGridy));
-		frame.getContentPane().add(statusTextArea);
+		
+		frame.getContentPane().add(scrollPane);
 
 		numberOfYGridsTaken += quantizedPartsy - numberOfYGridsTaken - 5 + 1;
 
