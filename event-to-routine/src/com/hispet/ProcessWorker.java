@@ -14,8 +14,9 @@ import java.util.zip.ZipInputStream;
 import javax.swing.JOptionPane;
 import javax.swing.SwingWorker;
 
-public class ProcessWorker extends SwingWorker<Void, String>{	
+public class ProcessWorker extends SwingWorker<Void, String> {
 	ActionEvent event;
+
 	public ProcessWorker(ActionEvent e) {
 		event = e;
 	}
@@ -29,6 +30,14 @@ public class ProcessWorker extends SwingWorker<Void, String>{
 		if (gui.outputFileName.equals("") || gui.inputFileName.equals("")) {
 			publish("\nUser didn't provide both input and output files.");
 			JOptionPane.showMessageDialog(null, "Please provide both input and output files.");
+			return null;
+		}
+
+		// check if the fileNames are the same, if they are report back to the user..
+		if (gui.outputFileName.equals( gui.inputFileName)) {
+			publish("\nInput file and output file can not be the same.");
+			JOptionPane.showMessageDialog(null, "Input and output can not be the same");
+			return null;
 		}
 		// Re-check the output file if it exists, ask the user again for
 		// confirmation to overwrite.
@@ -87,24 +96,23 @@ public class ProcessWorker extends SwingWorker<Void, String>{
 				// https://www.baeldung.com/java-compress-and-uncompress
 			} catch (FileNotFoundException ex) {
 				// If it reached here the File doesn't exist or something happens.
-				publish(
-						"\nInput File doesn't exist please provide a proper file\nEROR : " + ex.getMessage());
+				publish("\nInput File doesn't exist please provide a proper file\nEROR : " + ex.getMessage());
 				ex.printStackTrace();
 			} catch (IOException ex) {
 				ex.printStackTrace();
 				publish("\nIO exception on input File\nEROR : " + ex.getMessage());
 			}
-			
+
 		}
 		int returnVal;
 		if (newFile == null) {
 			// this means that the input is a json and not compressed
-			returnVal = Main.startProcessing(gui.inputFileName, gui.outputFileName,this);
+			returnVal = Main.startProcessing(gui.inputFileName, gui.outputFileName, this);
 		} else {
 			// this means the input file is a compressed file.
-			returnVal = Main.startProcessing(newFile.getAbsolutePath(), gui.outputFileName,this);
-			//Delete the extracted file.
-			if(newFile.delete()) {
+			returnVal = Main.startProcessing(newFile.getAbsolutePath(), gui.outputFileName, this);
+			// Delete the extracted file.
+			if (newFile.delete()) {
 				System.out.println("Successfully deleted the temporary uncompressed file");
 			}
 		}
@@ -112,17 +120,17 @@ public class ProcessWorker extends SwingWorker<Void, String>{
 			publish("\nFinished successfully!!!");
 		} else {
 			publish("\nERROR : Conversion unsuccessful.");
-		} 
+		}
 		return null;
 	}
-	
+
 	public void showMessage(String message) {
 		publish(message);
 	}
-	
+
 	@Override
 	protected void process(List<String> chunks) {
-		for(String message: chunks) {
+		for (String message : chunks) {
 			gui.statusTextArea.append(message);
 		}
 	}

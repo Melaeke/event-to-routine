@@ -1,3 +1,20 @@
+/**
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * MAIN ISSUE..
+ * it doesn't convert fine when we do conversions consequetively
+ * so restart on every conversion.
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ */ 
 package com.hispet;
 
 import java.io.IOException;
@@ -69,6 +86,10 @@ public class EventProcessor {
 		}
 		period = period.substring(0, 4) + period.substring(5, 7);
 		String dataElement = diseaseDataElementFromEvent(event);
+		if(dataElement==null) {//the DataElmeent doesn't exist so ignore this event
+			return;
+		}
+		
 
 		// from now on, Category Combo, storedBy and value are stored in the
 		// dataValue array of the event so look for them inside the datavalue of the

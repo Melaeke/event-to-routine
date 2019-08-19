@@ -29,6 +29,14 @@ import javax.swing.JFileChooser;
 
 public class gui {
 
+	public static int currentRunningStatus = 1;
+
+	public static int RUNNING_JSON_EXPORT_ONLY = 1;
+	public static int RUNNING_JSON_AND_CSV_EXPORT = 2;
+	public static int RUNNING_CSV_EXPORT_ONLY = 3;
+
+	public static String databaseDumpFilesDirectory = "";
+
 	JFrame frame;
 	public static JTextField inputFileNameTextField = new JTextField();
 	public static JTextField outputFileNameTextField = new JTextField();
@@ -106,6 +114,64 @@ public class gui {
 	 */
 	public static void main(String[] args) {
 
+		/*-
+		 * In this program we mainly have 3 options.
+		 * the options should be given as -s1 -s2 -s3 if no option is provided the system will
+		 * automatically assume option 1 is chosen.
+		 * 1) Change event data to routine and export to json only.
+		 * 		This process is just exporting the event data and then import it to this app
+		 * 		and this app will output a json file that can be imported to the main DHIS app.
+		 * 		Note that the matching uses the 2 json files found in this package and no 
+		 * 		additional input is required.
+		 * 2) Change event data to routine and export to json and csv (database).
+		 * 		This process is as process 1 but will also output a csv file that can be
+		 * 		automatically inserted into the database of DHIS2 (datavalue table).
+		 * 		For these feature to operate, we need to provide a folder with five files in it
+		 * 		(categoryoptioncombo.csv ,dataelement.csv ,organisationunit.csv,period.csv)
+		 * 		These files should be a direct export of the four tables in the DHIS instance that 
+		 * 		we are going to import the output to. This folder should be provided from terminal 
+		 * 		when openning this app using the argument -i/home/... Notice that there should be
+		 * 		no space after -i.
+		 * 3)	Change a dataValue Json export to csv(database).
+		 * 		These option just changes a given datavalue file in json to a csv file that can be
+		 * 		automatically imported to the database. as option 2 this option also requires an input
+		 * 		folder containing the 4 files which are database dumps of the DHIS2 instance that we
+		 * 		plan to insert the datavalues into.
+		 */
+
+		if (args.length > 0) {
+			for (int i = 0; i < args.length; i++) {
+				if (args[i].startsWith("-s")) {
+					switch (Integer.parseInt(args[i].substring(2, 3))) {
+					case 1:
+						currentRunningStatus = RUNNING_JSON_EXPORT_ONLY;
+						break;
+					case 2:
+						currentRunningStatus = RUNNING_JSON_AND_CSV_EXPORT;
+						break;
+					case 3:
+						currentRunningStatus = RUNNING_JSON_EXPORT_ONLY;
+						break;
+					default:
+						System.out.println("You have entered a wrong input for option '-s' only {1,2,3} are allowed");
+						System.exit(-1);
+					}
+				}
+
+				if (args[i].startsWith("-i")) {
+					databaseDumpFilesDirectory = args[i].substring(2);
+				}
+			}
+		} else {
+			currentRunningStatus = RUNNING_JSON_EXPORT_ONLY;
+		}
+		if((currentRunningStatus == RUNNING_CSV_EXPORT_ONLY || currentRunningStatus == RUNNING_JSON_AND_CSV_EXPORT)&& databaseDumpFilesDirectory.equals("")) {
+			System.out.println("Please provide the directories for Database dump file with the flag \"-i/home/...\"");
+			System.exit(-1);
+		}
+
+		currentRunningStatus=3;
+		databaseDumpFilesDirectory = "/home/melaeke/dhis/fmoh/data_Migration/Final/scripts/data_Testing_server";
 		initializeSizes(screenSize.getWidth(), screenSize.getHeight(), false);
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
@@ -181,9 +247,9 @@ public class gui {
 				do {
 					int returnVal = outputFileChooser.showSaveDialog((Component) event.getSource());
 					if (returnVal == JFileChooser.APPROVE_OPTION) {
-						String fileName=outputFileChooser.getSelectedFile().toString();
-						if(!fileName.endsWith("json")) {
-							fileName=fileName+".json";
+						String fileName = outputFileChooser.getSelectedFile().toString();
+						if (!fileName.endsWith("json")) {
+							fileName = fileName + ".json";
 						}
 						File file = new File(fileName);
 						if (file.exists()) {// if the file exists ask the user if the file can be replaced.
@@ -220,11 +286,11 @@ public class gui {
 
 			@Override
 			public void actionPerformed(ActionEvent event) {
-				
+
 				statusTextArea.append("\nStarted conversion...");
-				
+
 				new ProcessWorker(event).execute();
-				
+
 			}
 		});
 	}
@@ -318,7 +384,7 @@ public class gui {
 		scrollPane.setBounds((int) (2 * oneGridx), (int) ((numberOfYGridsTaken + 1) * oneGridy),
 				(int) ((quantizedPartsx - 4) * oneGridx),
 				(int) ((quantizedPartsy - numberOfYGridsTaken - 5) * oneGridy));
-		
+
 		frame.getContentPane().add(scrollPane);
 
 		numberOfYGridsTaken += quantizedPartsy - numberOfYGridsTaken - 5 + 1;
