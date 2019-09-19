@@ -14,7 +14,7 @@
  * 
  * 
  * 
- */ 
+ */
 package com.hispet;
 
 import java.io.IOException;
@@ -41,7 +41,9 @@ public class EventProcessor {
 
 	public static JSONObject categoryOptionsFromEventDataElements;
 
-	public static Map<String,DataValue> allEvents = new HashMap<String,DataValue>();
+	public static Map<String, DataValue> allEvents = new HashMap<String, DataValue>();
+
+	public static Map<String, CompleteDataSets> allCompleteness = new HashMap<String, CompleteDataSets>();
 
 	/**
 	 * This is used to track the size of allEvents not to use the Iterator.
@@ -59,7 +61,6 @@ public class EventProcessor {
 	 */
 	public static int eventsWithNoDiseaseCode = 0;
 
-	
 	/**
 	 * this is the initialization
 	 */
@@ -74,22 +75,22 @@ public class EventProcessor {
 
 	}
 
-	public static int eventDateCounter=0;
+	public static int eventDateCounter = 0;
+
 	public static void addEvent(Event event) {
 
 		// these are the default for all the data values in this event
 
 		String period = event.getEventDate();
-		if(period==null) {
+		if (period == null) {
 			eventDateCounter++;
-			period=event.getDueDate();
+			period = event.getDueDate();
 		}
 		period = period.substring(0, 4) + period.substring(5, 7);
 		String dataElement = diseaseDataElementFromEvent(event);
-		if(dataElement==null) {//the DataElmeent doesn't exist so ignore this event
+		if (dataElement == null) {// the DataElmeent doesn't exist so ignore this event
 			return;
 		}
-		
 
 		// from now on, Category Combo, storedBy and value are stored in the
 		// dataValue array of the event so look for them inside the datavalue of the
@@ -108,26 +109,26 @@ public class EventProcessor {
 
 			// using all the unique fields, create an ID so that we can use this unique ID
 			// to check if the event was already created or a new one needs to be created.
-			String key = period + "|" + dataElement + "|" + event.getOrgUnit() + "|" + categoryOptionCombo + "|"
-					+ event.getAttributeOptionCombo();
+			String dataValueKey = period + "|" + dataElement + "|" + event.getOrgUnit() + "|" + categoryOptionCombo
+					+ "|" + event.getAttributeOptionCombo();
 
 			// check if this event is already registered.
 			// JSONObject = allEvents.
-			if (allEvents.get(key)!=null) {
+			if (allEvents.get(dataValueKey) != null) {
 				// this means the key exists so there is already a registered event
 				// so the task is just add the value on the existing event and then
 				// push it back using the same key to replace the previous event.
-				DataValue dv= allEvents.get(key);
+				DataValue dv = allEvents.get(dataValueKey);
 
 				// add the value of the previous with the new one.
-				dv.setValue(""+(Integer.parseInt(dv.getValue()) + Integer.parseInt(dataValue.getValue())));
+				dv.setValue("" + (Integer.parseInt(dv.getValue()) + Integer.parseInt(dataValue.getValue())));
 
 				// push back the new object to allEvents object.
-				allEvents.put(key, dv);
+				allEvents.put(dataValueKey, dv);
 
 			} else {
 				// event doesn't exist so create one and push it to the array.
-				DataValue newDataValue= new DataValue();
+				DataValue newDataValue = new DataValue();
 				try {
 					newDataValue.setAttributeOptionCombo(event.getAttributeOptionCombo());
 					newDataValue.setCategoryOptionCombo(categoryOptionCombo);
@@ -136,16 +137,34 @@ public class EventProcessor {
 					newDataValue.setPeriod(period);
 					newDataValue.setStoredBy(dataValue.getStoredBy());
 					newDataValue.setValue(dataValue.getValue());
+					newDataValue.setLastUpdated(dataValue.getlastUpdated());
+					newDataValue.setCreated(dataValue.getCreated());
+
 				} catch (Exception e) {
 					eventsWithNoDiseaseCode++;
-					System.out.println("JSON Error: "+e);
+					System.out.println("JSON Error: " + e);
 					e.printStackTrace();
 					continue;
 				}
 
 				// push the new event to allEvents
-				allEvents.put(key, newDataValue);
+				allEvents.put(dataValueKey, newDataValue);
 				allEventsSize++;
+
+				// since this is a new event, create completeness if it doesn't exist.
+				String completenessKey = period + "|" + event.getOrgUnit() + "|" + event.getAttributeOptionCombo();
+
+				if (allCompleteness.get(completenessKey) == null) {
+					//since the completeness doesn't exist create it and add it to allCompleteness
+					CompleteDataSets newCompleteDataSets = new CompleteDataSets();
+					newCompleteDataSets.setAttributeOptionCombo(event.getAttributeOptionCombo());
+					newCompleteDataSets.setPeriod(period);
+					newCompleteDataSets.setOrgUnit(event.getOrgUnit());
+					newCompleteDataSets.setCompleteDate(newDataValue.getlastUpdated());
+					
+					allCompleteness.put(completenessKey, newCompleteDataSets);
+				}
+
 			}
 		}
 

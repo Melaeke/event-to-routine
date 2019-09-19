@@ -26,7 +26,7 @@ public class ProcessWorker extends SwingWorker<Void, String> {
 		gui.outputFileName = gui.outputFileNameTextField.getText().toString();
 		gui.inputFileName = gui.inputFileNameTextField.getText().toString();
 
-		// check if the fileNames are empty. if they are remove everything.
+		// check if the fileNames are empty. if they are, show status message and exit.
 		if (gui.outputFileName.equals("") || gui.inputFileName.equals("")) {
 			publish("\nUser didn't provide both input and output files.");
 			JOptionPane.showMessageDialog(null, "Please provide both input and output files.");
@@ -34,12 +34,12 @@ public class ProcessWorker extends SwingWorker<Void, String> {
 		}
 
 		// check if the fileNames are the same, if they are report back to the user..
-		if (gui.outputFileName.equals( gui.inputFileName)) {
+		if (gui.outputFileName.equals(gui.inputFileName)) {
 			publish("\nInput file and output file can not be the same.");
-			JOptionPane.showMessageDialog(null, "Input and output can not be the same");
+			JOptionPane.showMessageDialog(null, "Input and output files can not be the same.");
 			return null;
 		}
-		// Re-check the output file if it exists, ask the user again for
+		// Re-check the output file. If it exists, ask the user again for
 		// confirmation to overwrite.
 		File outputFile = new File(gui.outputFileName);
 		if (outputFile.exists()) {
@@ -72,14 +72,23 @@ public class ProcessWorker extends SwingWorker<Void, String> {
 					// The file in the zip is not metadata.json so display error message.
 					publish("\nERROR : The compressed file " + gui.inputFileName
 							+ " should contain only one file named \"metadata.json\"");
+					JOptionPane.showMessageDialog(null, "ERROR : The compressed file " + gui.inputFileName
+							+ " should contain only one file named \"metadata.json\"");
 					zis.close();
 					return null;
 				}
 
 				newFile = new File(outputDir, zipEntry.getName());
-				if (newFile.exists()) {// if it exists change the fileName
+				if (newFile.exists()) {
+					// If the file "metadata.json" exists in the uncompressing folder, rename the
+					// file to something new that is highly unlikely to exist.
 					newFile = new File(outputDir, "tempMetadata" + System.currentTimeMillis() + ".json");
 				}
+				
+				/**
+				 * From here on, disable the start, and the browse buttons.
+				 */
+				gui.statusOfAllButtons(false);
 				publish("\nUncompressing input file...");
 				FileOutputStream fos = new FileOutputStream(newFile);
 				int len;
@@ -98,18 +107,22 @@ public class ProcessWorker extends SwingWorker<Void, String> {
 				// If it reached here the File doesn't exist or something happens.
 				publish("\nInput File doesn't exist please provide a proper file\nEROR : " + ex.getMessage());
 				ex.printStackTrace();
+				gui.statusOfAllButtons(true);
 			} catch (IOException ex) {
 				ex.printStackTrace();
 				publish("\nIO exception on input File\nEROR : " + ex.getMessage());
+				gui.statusOfAllButtons(true);
 			}
 
 		}
 		int returnVal;
 		if (newFile == null) {
 			// this means that the input is a json and not compressed
+			gui.statusOfAllButtons(false);
 			returnVal = Main.startProcessing(gui.inputFileName, gui.outputFileName, this);
 		} else {
 			// this means the input file is a compressed file.
+			gui.statusOfAllButtons(false);
 			returnVal = Main.startProcessing(newFile.getAbsolutePath(), gui.outputFileName, this);
 			// Delete the extracted file.
 			if (newFile.delete()) {
@@ -118,7 +131,9 @@ public class ProcessWorker extends SwingWorker<Void, String> {
 		}
 		if (returnVal == 1) {
 			publish("\nFinished successfully!!!");
+			gui.statusOfAllButtons(true);
 		} else {
+			gui.statusOfAllButtons(true);
 			publish("\nERROR : Conversion unsuccessful.");
 		}
 		return null;

@@ -44,6 +44,10 @@ public class DataValue {
 
 	protected String storedBy;
 
+	protected String lastUpdated;
+	
+	protected String created;
+
 	public String getDataElement() {
 		return dataElement;
 	}
@@ -104,6 +108,22 @@ public class DataValue {
 		this.storedBy = storedBy;
 	}
 
+	public String getlastUpdated() {
+		return lastUpdated;
+	}
+
+	public void setLastUpdated(String lastUpdated) {
+		this.lastUpdated = lastUpdated;
+	}
+	
+	public String getCreated() {
+		return created;
+	}
+
+	public void setCreated(String created) {
+		this.created = created;
+	}
+
 	// --------------------------------------------------------------------------
 	// To be able to output a string that can be used to insert directly to DB
 	// --------------------------------------------------------------------------
@@ -111,8 +131,7 @@ public class DataValue {
 	public String inSQLForm() {
 		String temp = allDataElements.get(this.dataElement) + "," + periods.get(this.period) + ","
 				+ allOrganisationUnits.get(this.orgUnit) + "," + allCatCombo.get(this.categoryOptionCombo) + ","
-				+ allCatCombo.get(this.attributeOptionCombo) + "," + this.value + "," + this.storedBy + "," + date
-				+ ","// created
+				+ allCatCombo.get(this.attributeOptionCombo) + "," + this.value + "," + this.storedBy + "," + date + ","// created
 				+ date + ","// lastUpdated
 				+ "eventMigration,"// comment
 				+ "false,"// followup
@@ -134,7 +153,7 @@ public class DataValue {
 			errorOccured = true;
 		}
 		if (periods.get(this.period) == null) {
-			if(!this.period.endsWith("00")) {
+			if (!this.period.endsWith("00")) {
 				System.out.println("Error: Period doesn't exist in database >> " + this.period);
 			}
 			errorOccured = true;
@@ -179,7 +198,8 @@ public class DataValue {
 		System.out.println("Initializing static method in main finished");
 	}
 
-	private static void readCsvAndPutOnMap(String fileName, String keyHeader, String valueHeader, Map<String, Integer> returnMap) {
+	private static void readCsvAndPutOnMap(String fileName, String keyHeader, String valueHeader,
+			Map<String, Integer> returnMap) {
 		try {
 			CsvReader reader = new CsvReader(fileName);
 			reader.readHeaders();

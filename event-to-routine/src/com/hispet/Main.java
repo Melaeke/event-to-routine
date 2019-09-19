@@ -25,13 +25,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public class Main {
 
 	public static int startProcessing(String inputFileName, String outputFileName, ProcessWorker worker) {
-		worker.showMessage("\nReading input file... "+gui.currentRunningStatus);
+		worker.showMessage("\nReading input file... ");
 
 		ObjectMapper objectMapper = new ObjectMapper()
 				.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
 				.configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true);
 		DataValue[] finalDataValue = null;
-		System.out.println("Finished initializing objectMapper.");
+		CompleteDataSets[] finalCompleteness = null;
 		if (gui.currentRunningStatus == gui.RUNNING_JSON_AND_CSV_EXPORT
 				|| gui.currentRunningStatus == gui.RUNNING_JSON_EXPORT_ONLY) {
 			JsonNode temp = null;
@@ -62,10 +62,17 @@ public class Main {
 			worker.showMessage("\nFinsihed reading file. Starting conversion");
 			// Now I have all the Events changed I need it to change it to a JSON array and
 			// export it.
-			Object[] keys = EventProcessor.allEvents.keySet().toArray();
+			Object[] dataValueKeys = EventProcessor.allEvents.keySet().toArray();
 			finalDataValue = new DataValue[EventProcessor.allEvents.keySet().size()];
-			for (int i = 0; i < keys.length; i++) {
-				finalDataValue[i] = EventProcessor.allEvents.get((String) keys[i]);
+			for (int i = 0; i < dataValueKeys.length; i++) {
+				finalDataValue[i] = EventProcessor.allEvents.get((String) dataValueKeys[i]);
+			}
+			
+			//Here add the completeness to the output as well.
+			Object [] completenessKeys = EventProcessor.allCompleteness.keySet().toArray();
+			finalCompleteness = new CompleteDataSets[EventProcessor.allCompleteness.keySet().size()];
+			for (int i=0;i<completenessKeys.length;i++) {
+				finalCompleteness[i]=EventProcessor.allCompleteness.get((String)completenessKeys[i]);
 			}
 
 			display("all DataValues:" + EventProcessor.allDataValuesSize);
@@ -83,6 +90,7 @@ public class Main {
 
 				DataValueSet tempOutput = new DataValueSet();
 				tempOutput.setDataValues(finalDataValue);
+				tempOutput.setCompleteDataSets(finalCompleteness);
 
 				ObjectMapper om = new ObjectMapper();
 				om.writeValue(os, tempOutput);
@@ -185,6 +193,7 @@ public class Main {
 	 *
 	 */
 	static class DataValueSet {
+		public CompleteDataSets[] completeDataSets;
 		public DataValue[] dataValues;
 
 		public DataValue[] getDataValues() {
@@ -193,6 +202,14 @@ public class Main {
 
 		public void setDataValues(DataValue[] dataValues) {
 			this.dataValues = dataValues;
+		}
+		
+		public CompleteDataSets[] getCompleteDataSets() {
+			return completeDataSets;
+		}
+		
+		public void setCompleteDataSets(CompleteDataSets[] completeDataSets) {
+			this.completeDataSets = completeDataSets;
 		}
 	}
 }

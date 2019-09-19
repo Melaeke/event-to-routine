@@ -47,7 +47,7 @@ public class gui {
 	public static JButton browseOutputFileButton = new JButton("Browse");
 	public static JSeparator separator2 = new JSeparator();
 	public static JLabel statusLabel = new JLabel("Status");
-	public static JTextArea statusTextArea = new JTextArea("Browse the file you want to convert And press start");
+	public static JTextArea statusTextArea = new JTextArea("Browse the files you want to convert and press start");
 	public static JButton startButton = new JButton("Start");
 	public static JFileChooser inputFileChooser = new JFileChooser();
 	public static JFileChooser outputFileChooser = new JFileChooser();
@@ -88,7 +88,7 @@ public class gui {
 
 	private static void initializeSizes(double maxWidth, double maxHeight, boolean resized) {
 		if (!resized) {
-			// If not resized, make the screen 20% of the total size.
+			// If not resized, make the screen 50% of the total size.
 			totalWidth = maxWidth * 0.5;
 			totalHeight = maxHeight * 0.5;
 
@@ -103,6 +103,8 @@ public class gui {
 				totalHeight = totalWidth / aspectRatio;
 			}
 		} else {
+			// This is when the user manually resizes the app. In this case, don't do any
+			// resizing manually.
 			totalWidth = maxWidth;
 			totalHeight = maxHeight;
 		}
@@ -130,7 +132,7 @@ public class gui {
 		 * 		(categoryoptioncombo.csv ,dataelement.csv ,organisationunit.csv,period.csv)
 		 * 		These files should be a direct export of the four tables in the DHIS instance that 
 		 * 		we are going to import the output to. This folder should be provided from terminal 
-		 * 		when openning this app using the argument -i/home/... Notice that there should be
+		 * 		when opening this app using the argument -i/home/... Notice that there should be
 		 * 		no space after -i.
 		 * 3)	Change a dataValue Json export to csv(database).
 		 * 		These option just changes a given datavalue file in json to a csv file that can be
@@ -150,9 +152,10 @@ public class gui {
 						currentRunningStatus = RUNNING_JSON_AND_CSV_EXPORT;
 						break;
 					case 3:
-						currentRunningStatus = RUNNING_JSON_EXPORT_ONLY;
+						currentRunningStatus = RUNNING_CSV_EXPORT_ONLY;
 						break;
 					default:
+						// Show wrong switch selected message on terminal and exit.
 						System.out.println("You have entered a wrong input for option '-s' only {1,2,3} are allowed");
 						System.exit(-1);
 					}
@@ -163,16 +166,23 @@ public class gui {
 				}
 			}
 		} else {
+			// If no argument is provided, default is JSON export only.
 			currentRunningStatus = RUNNING_JSON_EXPORT_ONLY;
 		}
-		if((currentRunningStatus == RUNNING_CSV_EXPORT_ONLY || currentRunningStatus == RUNNING_JSON_AND_CSV_EXPORT)&& databaseDumpFilesDirectory.equals("")) {
+		if ((currentRunningStatus == RUNNING_CSV_EXPORT_ONLY || currentRunningStatus == RUNNING_JSON_AND_CSV_EXPORT)
+				&& databaseDumpFilesDirectory.equals("")) {
+			// If dump file folder location is not provided and the task requires expects a
+			// csv import,
+			// display a message on terminal and exit.
 			System.out.println("Please provide the directories for Database dump file with the flag \"-i/home/...\"");
 			System.exit(-1);
 		}
 
-		currentRunningStatus=3;
-		databaseDumpFilesDirectory = "/home/melaeke/dhis/fmoh/data_Migration/Final/scripts/data_Testing_server";
+		// Initialize the gui zise.
 		initializeSizes(screenSize.getWidth(), screenSize.getHeight(), false);
+
+		// Create a new thread and use that thread for better performance and for UI not
+		// to lag during processing of data.
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
 				try {
@@ -180,9 +190,12 @@ public class gui {
 					window.frame.setVisible(true);
 					// add a window resize listener.
 					window.frame.addComponentListener(new ComponentAdapter() {
+						// add window resize listener so that the window should update its resize
+						// automatically.
 						public void componentResized(ComponentEvent event) {
-							// here reinitialize the window size.
 							Rectangle size = event.getComponent().getBounds();
+
+							// resize the window size not respecting the aspect ratio.
 							initializeSizes(size.getWidth(), size.getHeight(), true);
 							window.initialize();
 						}
@@ -211,10 +224,11 @@ public class gui {
 			@Override
 			public void actionPerformed(ActionEvent event) {
 				inputFileChooser.setAcceptAllFileFilterUsed(false);
+				inputFileChooser.addChoosableFileFilter(
+						new FileNameExtensionFilter("All supported File Types: ZIP, JSON", "zip", "json"));
 				inputFileChooser.addChoosableFileFilter(new FileNameExtensionFilter("Zip compressed", "zip"));
 				inputFileChooser.addChoosableFileFilter(new FileNameExtensionFilter("JSON file", "json"));
-				inputFileChooser
-						.addChoosableFileFilter(new FileNameExtensionFilter("All supported File Types", "zip", "json"));
+
 				int returnVal = inputFileChooser.showOpenDialog((Component) event.getSource());
 				if (returnVal == JFileChooser.APPROVE_OPTION) {
 					File file = inputFileChooser.getSelectedFile();
@@ -265,7 +279,7 @@ public class gui {
 								acceptable = false;
 							}
 						} else {
-							// file doesn't exist so no wories just pass
+							// file doesn't exist so no worries just pass
 							acceptable = true;
 							outputFileName = fileName;
 							outputFileNameTextField.setText(outputFileName);
@@ -289,6 +303,8 @@ public class gui {
 
 				statusTextArea.append("\nStarted conversion...");
 
+				// start doing the processing in background so that Process won't lag the UI.
+				// And status message should be displayed with no lagging.
 				new ProcessWorker(event).execute();
 
 			}
@@ -380,7 +396,6 @@ public class gui {
 
 		numberOfYGridsTaken += 2;// one for offset from above and one for the height itself.
 
-		System.out.println(numberOfYGridsTaken);
 		scrollPane.setBounds((int) (2 * oneGridx), (int) ((numberOfYGridsTaken + 1) * oneGridy),
 				(int) ((quantizedPartsx - 4) * oneGridx),
 				(int) ((quantizedPartsy - numberOfYGridsTaken - 5) * oneGridy));
@@ -393,5 +408,11 @@ public class gui {
 				(int) ((numberOfYGridsTaken + 1) * oneGridy), (int) (buttonWidthInGrid * oneGridx),
 				(int) (2 * oneGridy));
 		frame.getContentPane().add(startButton);
+	}
+	
+	static public void statusOfAllButtons(boolean status) {
+		browseInputFileButton.setEnabled(status);
+		browseOutputFileButton.setEnabled(status);
+		startButton.setEnabled(status);
 	}
 }
